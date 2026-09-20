@@ -81,9 +81,12 @@ export function ContinuousCircuit({ reduced }) {
           if (sections[i].id === 'contact') {
             const port = box(document.querySelector('.contact-port'))
             const portX = port.x + port.width / 2
-            const branch = `M${x} ${b.y + 22}H${portX}V${port.y - 25}`
+            // Feed the contact board directly from the section's center node.
+            // The previous route joined the left rail first, which made the
+            // pulse visibly travel away from the board before returning to it.
+            const branch = `M${mid} ${b.y + 22}H${portX}V${port.y - 25}`
             return { id:'contact', start, end, gate:b.y-12,
-              contactFeed:`M${mid} ${start}V${b.y+22}H${x}H${portX}V${port.y+4}`,
+              contactFeed:`M${mid} ${start}V${b.y+22}H${portX}V${port.y+4}`,
               wire:`M${mid} ${start}V${b.y-22}M${mid} ${b.y+2}${continuation}${branch}`,
               pulse:`M${mid} ${start}${continuation}` }
           }
