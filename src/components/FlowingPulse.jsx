@@ -29,7 +29,8 @@ export function FlowingPulse({ d, legs, reduced = false, duration = 3.5, scope, 
     })
     timeline.to(head, { opacity: 0, duration: 0.2 })
     let visible = false
-    let engaged = activation !== 'hover'
+    const touch = matchMedia('(hover: none), (pointer: coarse)').matches
+    let engaged = touch || activation !== 'hover'
     const update = () => {
       const running = visible && engaged && !document.hidden
       group.dataset.running = String(running)
@@ -45,7 +46,7 @@ export function FlowingPulse({ d, legs, reduced = false, duration = 3.5, scope, 
       head.style.opacity = '0'
       update()
     }
-    if (activation === 'hover') {
+    if (activation === 'hover' && !touch) {
       // Lazy-mounted scenes may finish loading while the pointer is already inside.
       engaged = target.matches(':hover') || target.contains(document.activeElement)
       target.addEventListener('pointerenter', enter)

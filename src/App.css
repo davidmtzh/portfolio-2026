@@ -2887,7 +2887,7 @@ html[data-motion=reduce] .secret-arcade .monitor::before,html[data-motion=reduce
 .background[data-education-reveal=ready] .credential.is-revealed { opacity:1; filter:brightness(1); }
 @media(max-width:700px) {
   .background .background-grid { grid-template-columns:1fr; grid-template-rows:auto; }
-  .background .background-grid > div { display:contents; }
+  .background .background-grid > div { display:block; grid-row:auto; }
   .background .background-grid > div::before { display:none; }
   .background .background-grid > div:first-child .list-heading { grid-row:1; }
   .background .background-grid > div:last-child .list-heading { grid-row:2; }
@@ -2983,3 +2983,24 @@ html[data-motion=reduce] .secret-arcade .game-station[data-state=inserting] .sec
 @media(max-width:600px) { .contact .contact-form { padding:22px 18px; } .contact .form-row { grid-template-columns:1fr; gap:18px; } }
 html[data-motion=reduce] .wooden-desk,html[data-motion=reduce] .wooden-desk-spill { transition:none; }
 @media(prefers-reduced-motion:reduce) { .wooden-desk,.wooden-desk-spill { transition:none; } }
+
+/* Touch layouts use natural document flow and inexpensive, persistent reveals. */
+@media (max-width:850px), (pointer:coarse) {
+  .background .background-grid { display:flex; flex-direction:column; gap:36px; padding:0 8px 36px 18px; }
+  .background .background-grid > div { display:block; grid-row:auto; border-left:1px solid #69647f66; padding-left:18px; }
+  .background .background-grid > div::before { display:none; }
+  .background .background-grid .list-heading { min-height:0; margin-bottom:12px; padding-bottom:16px; }
+  .background .background-grid .credential { grid-row:auto; min-height:0; padding:20px 0; gap:14px; opacity:1; filter:none; }
+  .background .background-grid .credential::before { display:none; }
+  .background .credential > .mono { flex-shrink:0; white-space:nowrap; }
+  .background .education-circuit { display:none; }
+  .story-journey .journey-card { opacity:.78; box-shadow:none; }
+  .story-journey .journey-card.is-readable { opacity:1; border-color:#789faa80; }
+  .journey-electricity, .journey-scroll-status, .story-journey::before, .story::after { display:none; }
+  .section-shell::after { animation:none; }
+  .contact .contact-form { box-shadow:none; }
+  .folder-dialog { max-height:calc(100svh - 32px); }
+}
+@media (max-width:380px) {
+  .background .credential { flex-direction:column; gap:8px; }
+}

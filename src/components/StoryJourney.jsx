@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useMobileLayout } from '../hooks/useMobileLayout'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -18,6 +19,7 @@ function Gate({ type, x, y, angle = 0 }) {
   </g>
 }
 export function StoryJourney({ reduced }) {
+  const mobile = useMobileLayout()
   const root = useRef(null)
   const track = useRef(null)
   const focusCard = useRef(null)
@@ -57,13 +59,32 @@ export function StoryJourney({ reduced }) {
     observer.observe(element)
     element.querySelectorAll('.journey-card').forEach(el=>observer.observe(el))
     document.fonts.ready.then(measure); measure()
-    window.addEventListener('resize',measure)
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize',measure) }
+    let lastWidth = innerWidth
+    const resize = () => {
+      // Browser chrome resizing during a swipe must not rebuild scroll timelines.
+      if (matchMedia('(pointer: coarse), (max-width:850px)').matches && lastWidth === innerWidth) return
+      lastWidth = innerWidth
+      measure()
+    }
+    window.addEventListener('resize',resize)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize',resize) }
   }, [])
   useEffect(() => {
     if (!layout) return
     const element = root.current, wrapper = track.current, section = element.closest('section')
     const cards = [...element.querySelectorAll('.journey-card')]
+    if (mobile) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-readable')
+            observer.unobserve(entry.target)
+          }
+        })
+      }, { threshold: 0, rootMargin: '0px 0px 40px 0px' })
+      cards.forEach(card => observer.observe(card))
+      return () => { observer.disconnect(); cards.forEach(card => card.classList.remove('is-readable')) }
+    }
     if (reduced) return
     const pinned = !layout.narrow && layout.height < innerHeight - 96
     const distance = Math.max(900, layout.height * 1.5)
@@ -115,7 +136,7 @@ export function StoryJourney({ reduced }) {
       element.style.removeProperty('--journey-power'); section.style.removeProperty('--story-power')
       cards.forEach(card=>{card.classList.remove('is-current');card.style.removeProperty('--charge')})
     }
-  }, [layout,reduced])
+  }, [layout,reduced,mobile])
   return <div className="journey-scroll-track" ref={track}><div className="story-journey" ref={root}>
     {layout && <svg className="journey-wires" width={layout.width} height={layout.height} viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
       {layout.paths.map((path,i)=><path key={i} d={path} className="circuit-wire" />)}

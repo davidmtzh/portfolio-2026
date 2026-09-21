@@ -9,9 +9,8 @@ export function ScrambleWord({ reduced }) {
   useEffect(() => {
     if (reduced) return
     let visible = false, frame, last = 0, elapsed = 0, index = 0, displayed = ''
-    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting })
-    observer.observe(root.current)
     const tick = now => {
+      frame = null
       if (visible && !document.hidden && last) elapsed += Math.min(now - last, 80)
       last = now
       const next = words[(index + 1) % words.length]
@@ -22,10 +21,16 @@ export function ScrambleWord({ reduced }) {
         if (progress === 1) { index = (index + 1) % words.length; elapsed = 0; value = words[index] }
       }
       if (displayed !== value) { displayed = value; setText(value) }
-      frame = requestAnimationFrame(tick)
+      if (visible && !document.hidden) frame = requestAnimationFrame(tick)
     }
-    frame = requestAnimationFrame(tick)
-    return () => { observer.disconnect(); cancelAnimationFrame(frame) }
+    const resume = () => {
+      last = 0
+      if (visible && !document.hidden && !frame) frame = requestAnimationFrame(tick)
+    }
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; resume() })
+    observer.observe(root.current)
+    document.addEventListener('visibilitychange', resume)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', resume) }
   }, [reduced])
   return <span ref={root} className="scramble-word" aria-hidden="true">{reduced ? words[0] : text}.</span>
 }

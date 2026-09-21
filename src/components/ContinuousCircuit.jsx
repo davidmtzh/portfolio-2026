@@ -81,12 +81,22 @@ export function ContinuousCircuit({ reduced }) {
           if (sections[i].id === 'contact') {
             const port = box(document.querySelector('.contact-port'))
             const portX = port.x + port.width / 2
+            const form = box(document.querySelector('.contact-form'))
+            const copy = box(document.querySelector('.contact-copy'))
+            const stacked = form.y >= copy.bottom - 1
+            // On stacked layouts follow the outside rail, then cross the empty
+            // gap above the form. Never run a cable through the contact copy.
+            const feed = stacked
+              ? `V${b.y+22}H${x}V${port.y-25}H${portX}`
+              : `V${b.y+22}H${portX}`
             // Feed the contact board directly from the section's center node.
             // The previous route joined the left rail first, which made the
             // pulse visibly travel away from the board before returning to it.
-            const branch = `M${mid} ${b.y + 22}H${portX}V${port.y - 25}`
+            const branch = stacked
+              ? `M${x} ${port.y-25}H${portX}`
+              : `M${mid} ${b.y + 22}H${portX}V${port.y - 25}`
             return { id:'contact', start, end, gate:b.y-12,
-              contactFeed:`M${mid} ${start}V${b.y+22}H${portX}V${port.y+4}`,
+              contactFeed:`M${mid} ${start}${feed}V${port.y+4}`,
               wire:`M${mid} ${start}V${b.y-22}M${mid} ${b.y+2}${continuation}${branch}`,
               pulse:`M${mid} ${start}${continuation}` }
           }
