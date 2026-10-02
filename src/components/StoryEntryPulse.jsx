@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react'
 
-// The entry wire lives outside the pinned cards, so its pulse must too.
+// The outer cable shares the story timeline, including its initial progress.
 export function StoryEntryPulse({ d, reduced, eventName = 'journey:entry-progress' }) {
   const path = useRef(null), head = useRef(null), progress = useRef(-1)
   useEffect(() => {
+    const story = document.querySelector('#story')
+    const key = eventName === 'journey:exit-progress' ? 'exitProgress' : 'entryProgress'
+    progress.current = Number(story?.dataset[key] ?? -1)
+    const length = path.current.getTotalLength()
     const draw = () => {
       const active = !reduced && progress.current >= 0 && progress.current <= 1
       head.current.style.opacity = active ? '1' : '0'
       if (active) {
-        const point = path.current.getPointAtLength(path.current.getTotalLength() * progress.current)
+        const point = path.current.getPointAtLength(length * progress.current)
         head.current.setAttribute('transform', `translate(${point.x} ${point.y})`)
       }
     }

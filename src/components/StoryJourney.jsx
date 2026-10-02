@@ -52,7 +52,8 @@ export function StoryJourney({ reduced }) {
         itinerary[5] = narrow
           ? `M${c.x} ${c.t}H${c.r-9}Q${c.r} ${c.t} ${c.r} ${c.t+9}V${c.b-9}Q${c.r} ${c.b} ${c.r-9} ${c.b}H${c.x}`
           : `M${c.x} ${c.t}H${c.r-9}Q${c.r} ${c.t} ${c.r} ${c.t+9}V${c.y}`
-        setLayout({width:r.width,height:r.height,paths,gates,itinerary,cards,narrow,viewport:innerHeight})
+        const next = {width:r.width,height:r.height,paths,gates,itinerary,cards,narrow,viewport:innerHeight}
+        setLayout(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
       })
     }
     const observer = new ResizeObserver(measure)
@@ -86,25 +87,28 @@ export function StoryJourney({ reduced }) {
       return () => { observer.disconnect(); cards.forEach(card => card.classList.remove('is-readable')) }
     }
     if (reduced) return
-    const pinned = !layout.narrow && layout.height < innerHeight - 96
-    const distance = Math.max(900, layout.height * 1.5)
-    wrapper.dataset.pinned = String(pinned)
     const paths = [...element.querySelectorAll('.journey-motion-path')]
     const lengths = paths.map(path=>path.getTotalLength())
     const head = element.querySelector('.journey-pulse')
     const state = { phase: 0 }
     // The light spends most of the scroll distance at a card, not in transit.
-    const stops = pinned ? [0, .06, .24, .29, .47, .52, .70, .75, .94, 1] : (() => {
-      const span = layout.height + innerHeight * .1
-      const arrivals = layout.cards.map(card=>(card.t + Math.min((card.b-card.t)*.4,180) + innerHeight*.12)/span)
+    const stops = !layout.narrow ? [0, .28, .43, .48, .59, .64, .75, .80, .94, 1] : (() => {
+      const heading = wrapper.getBoundingClientRect().top - section.getBoundingClientRect().top
+      const span = section.offsetHeight + innerHeight * .18
+      const arrivals = layout.cards.map(card=>(heading + card.t + Math.min((card.b-card.t)*.4,180) + innerHeight*.12)/span)
       const result = [0]
       arrivals.forEach((arrival,i)=>result.push(arrival, i<3 ? arrivals[i+1] - Math.min(.065,(arrivals[i+1]-arrival)*.25) : .94))
       return [...result,1]
     })()
     const update = () => {
       const phase = Math.min(state.phase,8.99999), part = Math.floor(phase)
-      window.dispatchEvent(new CustomEvent('journey:entry-progress', { detail: phase < 1 ? phase : -1 }))
-      window.dispatchEvent(new CustomEvent('journey:exit-progress', { detail: state.phase >= 8 ? Math.min(1, state.phase - 8) : -1 }))
+      const entryProgress = phase < 1 ? phase : -1
+      const exitProgress = state.phase >= 8 ? Math.min(1, state.phase - 8) : -1
+      // Retain progress for cable observers mounted after initial measurement.
+      section.dataset.entryProgress = String(entryProgress)
+      section.dataset.exitProgress = String(exitProgress)
+      window.dispatchEvent(new CustomEvent('journey:entry-progress', { detail: entryProgress }))
+      window.dispatchEvent(new CustomEvent('journey:exit-progress', { detail: exitProgress }))
       head.style.visibility = phase < 1 || phase >= 8 ? 'hidden' : 'visible'
       element.dataset.started = String(state.phase > 0)
       const point = paths[part].getPointAtLength((phase-part)*lengths[part])
@@ -120,9 +124,10 @@ export function StoryJourney({ reduced }) {
       section.style.setProperty('--story-power',String(selected<0?0:Math.min(.65,.08+phase*.065)))
       const status = element.querySelector('.journey-scroll-status')
       status.textContent = selected<0 ? 'Scroll to follow the current ↓' : `${String(selected+1).padStart(2,'0')} / 04 · Scroll to follow my path`
-      if (pinned) window.dispatchEvent(new Event('journey:layout'))
     }
-    const timeline = gsap.timeline({ onUpdate:update, scrollTrigger:{ trigger:wrapper, pin:pinned ? element : false, pinSpacing:true, start:pinned?'top 48px':'top 62%', end:pinned?`+=${distance}`:'bottom 52%', scrub:.55, invalidateOnRefresh:true, onToggle:self=>element.dataset.inView=String(self.isActive) } })
+    // One document coordinate system for both the cards and the outer cables.
+    // No pin spacer: the next section follows the actual diagram height.
+    const timeline = gsap.timeline({ onUpdate:update, scrollTrigger:{ trigger:section, start:'top 70%', end:'bottom 52%', scrub:.25, invalidateOnRefresh:true, onToggle:self=>element.dataset.inView=String(self.isActive) } })
     for(let i=0;i<9;i++) timeline.to(state,{phase:i+1,duration:Math.max(.015,stops[i+1]-stops[i]),ease:'none'})
     focusCard.current = index => {
       const trigger = timeline.scrollTrigger
@@ -132,6 +137,7 @@ export function StoryJourney({ reduced }) {
     return () => {
       timeline.scrollTrigger.kill(); timeline.kill(); focusCard.current=null
       delete wrapper.dataset.pinned; wrapper.style.removeProperty('height')
+      delete section.dataset.entryProgress; delete section.dataset.exitProgress
       delete element.dataset.inView; delete element.dataset.started; delete element.dataset.activeCard; delete element.dataset.phase
       element.style.removeProperty('--journey-power'); section.style.removeProperty('--story-power')
       cards.forEach(card=>{card.classList.remove('is-current');card.style.removeProperty('--charge')})
