@@ -2970,8 +2970,7 @@ html[data-motion=reduce] .secret-arcade .game-station[data-state=inserting] .sec
 .contact .small-button { padding:10px 0; color:#9bb8be; }
 .contact .contact-form { position:relative; min-width:0; padding:30px; border:1px solid #436b715e; border-radius:12px; background:linear-gradient(145deg,#102a30e8,#081a21f2); box-shadow:0 20px 50px #00000020,inset 0 1px 0 #a7e9e908; }
 .contact .contact-form::before { content:''; position:absolute; top:27px; right:17px; width:13px; height:13px; border-top:1px solid #79a5ab75; border-right:1px solid #79a5ab75; pointer-events:none; }
-.contact-port { position:absolute; left:50%; top:-5px; width:8px; height:8px; border:1px solid #8cb7ba; border-radius:50%; background:#10272d; }
-.contact-port::before { content:''; position:absolute; bottom:7px; left:3px; height:26px; width:1px; background:#64858f; }
+.contact-port { position:absolute; left:50%; transform:translateX(-50%); top:-5px; width:8px; height:8px; border:1px solid #8cb7ba; border-radius:50%; background:#10272d; }
 .contact .contact-form label { color:#c2d3d7; font-size:14px; }
 .contact .contact-form input,.contact .contact-form textarea { margin-top:10px; padding:13px 14px; background:#07191fcc; border:1px solid #36545e; border-radius:6px; font:inherit; color:#edf6f6; transition:border-color .2s,box-shadow .2s; }
 .contact .contact-form input::placeholder,.contact .contact-form textarea::placeholder { color:#829ca6; }

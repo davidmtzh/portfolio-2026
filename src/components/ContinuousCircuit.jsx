@@ -93,8 +93,8 @@ export function ContinuousCircuit({ reduced }) {
             // The previous route joined the left rail first, which made the
             // pulse visibly travel away from the board before returning to it.
             const branch = stacked
-              ? `M${x} ${port.y-25}H${portX}`
-              : `M${mid} ${b.y + 22}H${portX}V${port.y - 25}`
+              ? `M${x} ${port.y-25}H${portX}V${port.y}`
+              : `M${mid} ${b.y + 22}H${portX}V${port.y}`
             return { id:'contact', start, end, gate:b.y-12,
               contactFeed:`M${mid} ${start}${feed}V${port.y+4}`,
               wire:`M${mid} ${start}V${b.y-22}M${mid} ${b.y+2}${continuation}${branch}`,
@@ -134,7 +134,7 @@ export function ContinuousCircuit({ reduced }) {
       {route.entry && <StoryEntryPulse d={route.entry} reduced={reduced} />}
       {route.exit && <StoryEntryPulse d={route.exit} reduced={reduced} eventName="journey:exit-progress" />}
       {route.transmitter && <FolderTransmitter geometry={route.transmitter} reduced={reduced} />}
-      {route.contactFeed && <FlowingPulse d={route.contactFeed} scope="#contact" reduced={reduced} repeat={false} restartOnReentry duration={1.1} color="#73dbea" />}
+      {route.contactFeed && <FlowingPulse d={route.contactFeed} scope="#contact" reduced={reduced} repeat activation="hover" restartOnReentry duration={1.1} color="#73dbea" />}
       {route.release && featuredExit > 0 && <FlowingPulse key={`featured-exit-${featuredExit}`} d={route.release} scope="#featured" reduced={reduced} repeat={false} duration={.7} color="#ffda86" />}
       <circle cx={geometry.mid} cy={route.start} r="3" className="circuit-terminal" />
       <g transform={`translate(${geometry.mid} ${route.gate})`} className="section-inverter">
