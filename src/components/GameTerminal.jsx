@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useInView } from 'motion/react'
 import { WoodenDesk } from './WoodenDesk'
-const GamePreview = lazy(() => import('./GamePreview'))
+const GamePreview = lazy(() => import('./QuintexGame'))
 class PreviewBoundary extends Component {
   state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }

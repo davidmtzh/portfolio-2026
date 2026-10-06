@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Quintex RPG</title><link rel="stylesheet" href="TemplateData/style.css"></head>
+<body><main id="game">
+<canvas id="unity-canvas" tabindex="0" aria-label="Quintex RPG. WASD move, Space sword, Q wind, E rock, Shift dash, C charge, Escape pause."></canvas>
+<section id="cover"><h1>QUINTEX <small>RPG</small></h1><p id="status">Loading…</p><progress id="progress" max="1" value="0"></progress><button id="play" hidden>Play</button><p>WASD / Arrows · Move &nbsp; Space · Sword<br>Q · Wind &nbsp; E · Rock &nbsp; Shift · Dash &nbsp; C · Charge<br>Esc · Pause</p><p class="mobile-guide">Drag the stick to move. Use the ability buttons to attack.</p></section>
+<header id="hud" hidden><span id="scene">Tutorial</span><span id="vitals"></span><span id="availability"></span><button id="pause">Pause</button><button id="restart">Restart</button></header>
+<button id="fullscreen" aria-label="Fullscreen">⛶</button>
+<section id="paused" hidden><h2>Paused</h2><button id="resume">Resume</button><button id="return">Return to start</button></section>
+<div id="touch" hidden><div id="stick" role="application" aria-label="Movement joystick"><i id="thumb"></i></div><div id="actions"><button id="slash">Sword</button><button id="rock">Rock</button><button id="wind">Wind</button><button id="charge">Charge</button></div></div>
+<p id="error" hidden role="alert"></p></main>
+<script>
+const el=id=>document.getElementById(id),canvas=el('unity-canvas'),contexts=[];
+for(const name of ['AudioContext','webkitAudioContext']){const Native=window[name];if(Native)window[name]=new Proxy(Native,{construct(Type,args){const context=new Type(...args);contexts.push(context);return context;}});}
+// Optional QA reads the real audio output without changing its mix.
+if(new URLSearchParams(location.search).has('qa')&&window.AudioNode){const connect=AudioNode.prototype.connect;AudioNode.prototype.connect=function(destination,...args){if(destination instanceof AudioDestinationNode){const analyser=this.context.createAnalyser();analyser.fftSize=256;connect.call(this,analyser);const samples=new Float32Array(256);let peak=0,frames=0;setInterval(()=>{analyser.getFloatTimeDomainData(samples);const p=Math.max(...samples.map(Math.abs));peak=Math.max(peak,p);if(p>.001)frames++;canvas.dataset.audioPeak=peak;canvas.dataset.audioActiveFrames=frames;canvas.dataset.audioState=this.context.state;},100);}return connect.call(this,destination,...args);};}
+let unity=null,began=false,playing=false,pointer=null;
+const send=(method,value)=>{if(unity)value===undefined?unity.SendMessage('QuintexCampaignBrowser',method):unity.SendMessage('QuintexCampaignBrowser',method,value);};
+function focus(){canvas.focus({preventScroll:true});}
+function unlock(){for(const context of contexts)context.resume();focus();}
+function release(){send('Release');pointer=null;el('thumb').style.transform='translate(-50%,-50%)';}
+function pause(){if(playing){release();send('Pause');}}
+// The portfolio pauses this instance when its monitor leaves the viewport.
+window.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===window.parent&&event.data?.type==='quintex:pause')pause();});
+function restart(){release();send('Restart');focus();}
+window.quintexCampaignState=s=>{canvas.dataset.state=JSON.stringify(s);playing=s.scene!=='Quintex_Start';el('hud').hidden=!playing;el('touch').hidden=!playing||s.paused;el('paused').hidden=!s.paused;el('scene').textContent=s.scene==='BryanScene'?'BRYANSCENE':'TUTORIAL';el('vitals').textContent='♥ '+s.health+' · Energy '+s.magic;el('availability').textContent=s.magic<3?'Charge energy':('Wind '+(s.windCooldown>0?s.windCooldown.toFixed(1)+'s':'ready')+' · Rock '+(s.rockReady?'ready':'recovering'));};
+el('play').onclick=()=>{if(!unity)return;unlock();began=true;el('cover').hidden=true;send('Play');};
+el('resume').onclick=()=>{unlock();send('Resume');};el('pause').onclick=pause;el('restart').onclick=restart;el('return').onclick=restart;
+el('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await el('game').requestFullscreen();}catch{}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',pause);canvas.addEventListener('pointerdown',focus);
+canvas.addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});
+const stick=el('stick');function move(e){const r=stick.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width*.36),dy=(e.clientY-r.top-r.height/2)/(r.height*.36),length=Math.max(1,Math.hypot(dx,dy)),x=dx/length,y=dy/length;el('thumb').style.transform=`translate(calc(-50% + ${x*30}px),calc(-50% + ${y*30}px))`;send('Move',x.toFixed(3)+','+(-y).toFixed(3));}
+stick.onpointerdown=e=>{e.preventDefault();focus();pointer=e.pointerId;stick.setPointerCapture(pointer);move(e);};stick.onpointermove=e=>{if(e.pointerId===pointer)move(e);};
+function stop(){pointer=null;send('Move','0,0');el('thumb').style.transform='translate(-50%,-50%)';}stick.onpointerup=stop;stick.onpointercancel=stop;stick.onlostpointercapture=stop;
+for(const [id,method]of[['slash','Slash'],['rock','Rock']])el(id).onpointerdown=e=>{e.preventDefault();focus();send(method);};
+for(const [id,method]of[['wind','Wind'],['charge','Charge']]){el(id).onpointerdown=e=>{e.preventDefault();focus();el(id).setPointerCapture(e.pointerId);send(method,'1');};for(const event of ['pointerup','pointercancel','lostpointercapture'])el(id).addEventListener(event,()=>send(method,'0'));}
+function resize(){const r=el('game').getBoundingClientRect(),d=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);}new ResizeObserver(resize).observe(el('game'));resize();
+function fail(message){el('error').hidden=false;el('error').textContent=message;el('status').textContent='Unable to load';}
+const config={dataUrl:'Build/1b458766a4638b00.data.unityweb',frameworkUrl:'Build/fda88c078fcb0841.framework.js.unityweb',codeUrl:'Build/c029014a3c1a9b59.wasm.unityweb',streamingAssetsUrl:'StreamingAssets',companyName:'Quintex',productName:'Quintex RPG',productVersion:'1.0',matchWebGLToCanvasSize:false,showBanner:(m,t)=>{if(t==='error')fail(m);}};
+config.symbolsUrl='Build/333e547d9022b91b.symbols.json.unityweb';
+const script=document.createElement('script');script.src='Build/302b1974a38878c0.loader.js';script.onload=()=>createUnityInstance(canvas,config,p=>{el('progress').value=p;el('status').textContent='Loading · '+Math.round(p*100)+'%';}).then(instance=>{unity=instance;el('cover').classList.add('loaded');el('progress').hidden=true;el('status').textContent='Explore. Adapt. Protect.';el('play').hidden=false;window.parent.postMessage({type:'quintex:ready'},location.origin);}).catch(e=>fail(String(e)));script.onerror=()=>fail('A build file could not load. Please reload.');document.body.appendChild(script);
+</script></body></html>
+
+
+
